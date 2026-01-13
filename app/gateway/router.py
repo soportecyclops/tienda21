@@ -2,12 +2,18 @@
 Archivo: app/gateway/router.py
 
 Router del subsistema Gateway.
-Punto de entrada de webhooks externos (chat y Tienda Nube).
+Punto de entrada HTTP para:
+- Chat (usuarios)
+- Webhooks externos (Tienda Nube)
 
-Este archivo NO contiene lógica de negocio.
+Leyes:
+------
+- El router NO contiene lógica de negocio.
+- Orquesta subsistemas.
+- Debe ser completamente mockeable por tests.
 """
 
-from typing import Dict, Any, Callable
+from typing import Dict, Any, Optional
 import inspect
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -31,14 +37,16 @@ webhook_router = APIRouter(
     tags=["gateway"],
 )
 
-router = webhook_router
-
 
 # ------------------------------------------------------------------
 # Helpers
 # ------------------------------------------------------------------
 
-async def _call_maybe_async(func: Callable, *args, **kwargs):
+async def _call_maybe_async(func, *args, **kwargs):
+    """
+    Permite llamar funciones sync o async de forma uniforme.
+    Fundamental para compatibilidad con mocks de pytest.
+    """
     result = func(*args, **kwargs)
     if inspect.isawaitable(result):
         return await result
@@ -46,7 +54,7 @@ async def _call_maybe_async(func: Callable, *args, **kwargs):
 
 
 # ------------------------------------------------------------------
-# Webhooks
+# Webhooks externos
 # ------------------------------------------------------------------
 
 @webhook_router.post("/tiendanube")
@@ -72,7 +80,7 @@ async def tiendanube_webhook(
         elif event_type == "product/updated":
             await process_product_update(payload)
         else:
-            logger.warning(f"Evento no manejado: {event_type}")
+            logger.warning(f"Evento Tienda Nube no manejado: {event_type}")
 
         return {"status": "processed", "event": event_type}
 
@@ -80,8 +88,15 @@ async def tiendanube_webhook(
         raise
     except Exception:
         logger.exception("Error procesando webhook Tienda Nube")
-        raise HTTPException(status_code=500, detail="Error interno del servidor")
+        raise HTTPException(
+            status_code=500,
+            detail="Error interno del servidor",
+        )
 
+
+# ------------------------------------------------------------------
+# Chat
+# ------------------------------------------------------------------
 
 @webhook_router.post("/chat")
 async def chat_webhook(
@@ -90,11 +105,14 @@ async def chat_webhook(
 ) -> Dict[str, Any]:
     try:
         payload = await request.json()
-        user_id = payload.get("user_id")
-        message = payload.get("message")
+        user_id: Optional[str] = payload.get("user_id")
+        message: Optional[str] = payload.get("message")
 
         if not user_id or not message:
-            raise HTTPException(status_code=400, detail="Faltan datos requeridos")
+            raise HTTPException(
+                status_code=400,
+                detail="Faltan datos requeridos",
+            )
 
         track_webhook_received("chat", "message")
 
@@ -141,11 +159,14 @@ async def chat_webhook(
         raise
     except Exception:
         logger.exception("Error procesando mensaje de chat")
-        raise HTTPException(status_code=500, detail="Error interno del servidor")
+        raise HTTPException(
+            status_code=500,
+            detail="Error interno del servidor",
+        )
 
 
 # ------------------------------------------------------------------
-# Stubs EXPUESTOS (mockeables)
+# Stubs expuestos (mockeables)
 # ------------------------------------------------------------------
 
 async def process_new_order(payload: Dict[str, Any]) -> None:

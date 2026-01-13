@@ -1,19 +1,23 @@
-"""
-Archivo: app/api/v1/webhook.py
+from fastapi import APIRouter, Depends
+from app.api.v1.schemas import (
+WebhookChatPayload,
+WebhookTiendaNubePayload,
+)
+from app.gateway.router import handle_chat, handle_tiendanube
 
 
-Router versionado v1.
-Contrato: delega 100% en el router canónico sin duplicar lógica.
-"""
+router = APIRouter(prefix="/webhook", tags=["webhook"])
 
 
-from fastapi import APIRouter
-from app.gateway.router import webhook_router as canonical_webhook_router
 
 
-# Router v1
-router = APIRouter(prefix="/api/v1")
+@router.post("/chat")
+async def chat_webhook(payload: WebhookChatPayload):
+return await handle_chat(payload)
 
 
-# Montamos el router canónico debajo de /api/v1
-router.include_router(canonical_webhook_router)
+
+
+@router.post("/tiendanube")
+async def tiendanube_webhook(payload: WebhookTiendaNubePayload):
+return await handle_tiendanube(payload)
