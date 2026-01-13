@@ -19,10 +19,17 @@ from app.observability.logger import setup_logging
 from app.observability.metrics import setup_metrics
 from app.context.store import init_db
 
-# Configuración de logging
+# ------------------------------------------------------------------
+# Logging
+# ------------------------------------------------------------------
+
 setup_logging()
 logger = logging.getLogger(__name__)
 
+
+# ------------------------------------------------------------------
+# Lifespan
+# ------------------------------------------------------------------
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -40,6 +47,10 @@ async def lifespan(app: FastAPI):
     logger.info("Apagando bot comercial JARVIS...")
 
 
+# ------------------------------------------------------------------
+# App
+# ------------------------------------------------------------------
+
 app = FastAPI(
     title="JARVIS Commercial Bot",
     description="Bot comercial para el ecosistema JARVIS",
@@ -47,7 +58,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# ------------------------------------------------------------------
 # CORS
+# ------------------------------------------------------------------
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,
@@ -56,9 +70,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 🔴 CORRECCIÓN CRÍTICA: no repetir prefijo
+# ------------------------------------------------------------------
+# Routers
+# ------------------------------------------------------------------
+
+# Router CANÓNICO (NO duplicar, NO versionar aún)
 app.include_router(webhook_router)
 
+
+# ------------------------------------------------------------------
+# Health & Root
+# ------------------------------------------------------------------
 
 @app.get("/")
 async def root():
@@ -77,6 +99,10 @@ async def health_check():
         },
     }
 
+
+# ------------------------------------------------------------------
+# Entrypoint
+# ------------------------------------------------------------------
 
 if __name__ == "__main__":
     uvicorn.run(

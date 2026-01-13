@@ -25,13 +25,12 @@ from app.observability.logger import get_logger
 logger = get_logger(__name__)
 security = HTTPBearer()
 
-# Router CANÓNICO (contrato con app.main y tests)
+# Router CANÓNICO
 webhook_router = APIRouter(
     prefix="/webhook",
     tags=["gateway"],
 )
 
-# Alias interno
 router = webhook_router
 
 
