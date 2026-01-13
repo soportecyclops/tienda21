@@ -1,23 +1,15 @@
-from fastapi import APIRouter, Depends
-from app.api.v1.schemas import (
-WebhookChatPayload,
-WebhookTiendaNubePayload,
-)
-from app.gateway.router import handle_chat, handle_tiendanube
+"""
+Archivo: app/api/v1/webhook.py
 
+Capa API v1.
+Expone endpoints HTTP versionados.
 
-router = APIRouter(prefix="/webhook", tags=["webhook"])
+Ley:
+- NO lógica
+- NO validación de negocio
+- Reexporta routers canónicos
+"""
 
+from app.gateway.router import webhook_router as router
 
-
-
-@router.post("/chat")
-async def chat_webhook(payload: WebhookChatPayload):
-return await handle_chat(payload)
-
-
-
-
-@router.post("/tiendanube")
-async def tiendanube_webhook(payload: WebhookTiendaNubePayload):
-return await handle_tiendanube(payload)
+__all__ = ["router"]
